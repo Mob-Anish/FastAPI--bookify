@@ -1,6 +1,6 @@
 from fastapi import FastAPI, Header
 from pydantic import BaseModel
-from typing import Optional
+from typing import List
 
 app = FastAPI()
 
@@ -53,26 +53,40 @@ books = [
 ]
 
 
-@app.get('/books')
-async def get_all_books() -> list:
-    pass
+class Book(BaseModel):
+    id: int
+    title: str
+    author: str
+    publisher: str
+    published_date: str
+    page_count: int
+    language: str
 
 
-@app.get('/books')
-async def create_book() -> dict:
-    pass
+@app.get('/books', response_model=List[Book])
+async def get_all_books():
+    return books
 
 
-@app.get('/book/{book_id}')
+@app.post('/books')
+async def create_book(book_data:Book) -> dict:
+    new_book = book_data.model_dump()
+
+    books.append(new_book)
+
+    return new_book
+
+
+@app.get('/books/{book_id}')
 async def get_book(book_id: int) -> dict:
     pass
 
 
-@app.get('/book/{book_id}')
+@app.get('/books/{book_id}')
 async def update_book(book_id: int) -> dict:
     pass
 
 
-@app.get('/book/{book_id}')
+@app.get('/books/{book_id}')
 async def delete_book(book_id: int) -> dict:
     pass
