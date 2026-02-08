@@ -1,7 +1,28 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends, HTTPException, status
+from sqlmodel.ext.asyncio.session import AsyncSession
+from src.db.main import get_session
+from .schemas import UserCreateModel
+from .service import UserService
 
 auth_router = APIRouter()
+user_service = UserService()
+
+
+@auth_router.get('/')
+async def get_user(email: str, session: AsyncSession = Depends(get_session)):
+    user = await user_service.get_user(email, session)
+    return user
+
 
 @auth_router.post('/signup')
-async def create_user():
-    pass
+async def create_user_account(user_data: UserCreateModel, session: AsyncSession = Depends(get_session)):
+    email = user_data.email
+
+    user_exists = user_service.user_exists(email, session)
+
+    if user_exists:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
+                            detail="User with this email already exists!")
+    new_user = await user_service.create_user(user_data, session)
+
+    return new_user
