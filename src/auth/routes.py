@@ -1,7 +1,11 @@
+from datetime import timedelta
 from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.responses import JSONResponse
 from sqlmodel.ext.asyncio.session import AsyncSession
+from src.auth.utils import create_access_token, verify_password
+from src.config import Config
 from src.db.main import get_session
-from .schemas import UserCreateModel, UserModel
+from .schemas import UserCreateModel, UserLoginModel, UserModel
 from .service import UserService
 
 auth_router = APIRouter()
@@ -26,3 +30,48 @@ async def create_user_account(user_data: UserCreateModel, session: AsyncSession 
     new_user = await user_service.create_user(user_data, session)
 
     return new_user
+
+
+@auth_router.post('/login', status_code=status.HTTP_200_OK)
+async def login_user(login_data: UserLoginModel, session: AsyncSession = Depends(get_session)):
+    email = login_data.email
+    password = login_data.password
+
+    user = await user_service.get_user_by_email(email, session)
+
+    if user is not None:
+        password_valid = verify_password(password, user.password_hash)
+
+        if password_valid:
+            access_token = create_access_token(
+                user_data={
+                    'email': user.email,
+                    'user_uid': str(user.uid)
+                }
+            )
+
+            refresh_token = create_access_token(
+                user_data={
+                    'email': user.email,
+                    'user_uid': str(user.uid)
+                },
+                refresh=True,
+                expiry=timedelta(days=Config.REFRESH_TOKEN_EXPIRY)
+            )
+
+            return JSONResponse(
+                content={
+                    "message": "Login successful",
+                    "access_token": access_token,
+                    "refresh_token": refresh_token,
+                    "user": {
+                        "email": user.email,
+                        "uid": str(user.uid)
+                    }
+                }
+            )
+
+    raise HTTPException(
+        status_code=status.HTTP_403_FORBIDDEN,
+        detail="Incorrect Email or Password"
+    )
