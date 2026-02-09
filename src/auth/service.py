@@ -1,24 +1,24 @@
 from .models import User
 from .schemas import UserCreateModel
 from sqlmodel.ext.asyncio.session import AsyncSession
-from sqlmodel import Select
+from sqlmodel import select
 from .utils import create_hash_password
 
 
 class UserService:
-    async def user_exists(self, email: str, session: AsyncSession):
-        user = await self.get_user_by_email(email)
-
-        return True if user is not None else False
-
     async def get_user_by_email(self, email: str, session: AsyncSession):
-        statement = Select(User).where(User.email == email)
+        statement = select(User).where(User.email == email)
 
         result = await session.exec(statement)
 
         user = result.first()
 
         return user
+
+    async def user_exists(self, email: str, session: AsyncSession):
+        user = await self.get_user_by_email(email, session)
+
+        return True if user is not None else False
 
     async def create_user(self, user_data: UserCreateModel, session: AsyncSession):
         user_data_dict = user_data.model_dump()
