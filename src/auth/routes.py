@@ -18,7 +18,7 @@ async def get_user(email: str, session: AsyncSession = Depends(get_session)):
 async def create_user_account(user_data: UserCreateModel, session: AsyncSession = Depends(get_session)):
     email = user_data.email
 
-    user_exists = user_service.user_exists(email, session)
+    user_exists = await user_service.user_exists(email, session)
 
     if user_exists:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
